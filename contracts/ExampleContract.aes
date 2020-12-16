@@ -1,0 +1,70 @@
+contract Ballot =
+    record state = {
+        index: int,
+        voters : map(address, voter),
+        proposals: map(int, proposal),
+        winningProposal: int}
+
+    record voter = {
+        voted: bool,
+        vote : int }
+
+    record proposal = {
+        name: string,
+        voteCount: int }
+    
+    stateful entrypoint init() =
+        {voters = {},
+            proposals = {},
+            index = 0,
+            winningProposal = 0 }
+    
+    stateful entrypoint createProposals(prop_name: string): int =
+        let newProposal: proposal = {
+            name = prop_name,
+            voteCount = 0 }
+        put(state{index = state.index+1})
+        put(state{proposals[state.index] = newProposal})
+        state.index
+    
+    stateful entrypoint addVoter(): bool = 
+        let newVoter : voter = {
+            voted = false,
+            vote = 0 }
+        put(state{voters[Call.caller] = newVoter})
+        true
+    
+    stateful entrypoint vote(proposalNum: int): bool =
+        require(!state.voters[Call.caller].voted , "Voter has already voted")
+        put(state{voters[Call.caller].voted = true})
+        put(state{voters[Call.caller].vote = proposalNum})
+
+        put(state{proposals[proposalNum].voteCount = state.proposals[proposalNum].voteCount+1})
+        if(state.winningProposal == 0)
+            put(state{winningProposal = proposalNum})
+        else if(state.proposals[proposalNum].voteCount > state.proposals[state.winningProposal].voteCount)
+            put(state{winningProposal = proposalNum})
+        true
+    
+    stateful entrypoint winningProposal(): string = 
+        let winningProposal = state.winningProposal
+        state.proposals[winningProposal].name
+
+
+    stateful entrypoint getProposalDetails(num: int) : proposal =
+        state.proposals[num]
+
+    
+    // stateful function findMax(pos: int, maxValue: int): bool = 
+    //     let max = maxValue
+    //     if(pos > state.index+1)
+    //         false
+    //     else 
+    //         if(state.proposals[pos].voteCount > maxValue)
+    //             let max = state.proposals[pos].voteCount
+    //             put(state{winningProposal = pos})
+    //         true
+    //     findMax(pos+1, max)
+        // else
+        //     findMax(pos+1, maxValue)
+
